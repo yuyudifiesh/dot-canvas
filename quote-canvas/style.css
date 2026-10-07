@@ -345,6 +345,10 @@ body {
   display: flex;
 }
 
+.cv-divider {
+  display: flex;
+}
+
 .cv-bar-track {
   background: #ffffff;
   border: 1px solid #000000;
