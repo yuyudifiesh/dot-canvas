@@ -8,4 +8,4 @@
 > 请使用 PC 等宽屏设备访问页面，避免元素丢失。
 
 ### Quote/0
-[开始编辑](./quote-canvas/index.html)
+[开始编辑](https://yuyudifiesh.github.io/dot-canvas/quote-canvas/index.html)
