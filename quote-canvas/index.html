@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quote/0 绘制工具</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="pc-only" id="pcOnly" hidden>
+  <div class="pc-only-inner">
+    <h2>请在 PC 上使用</h2>
+    <p>该编辑器为三栏布局，需要更宽的屏幕。<br>请使用桌面浏览器打开。</p>
+  </div>
+</div>
+
+<div class="layout" id="layout">
+  <aside class="pane-left">
+    <div class="pane-head">
+      <span>组件库</span>
+      <button class="btn" id="clearBtn" type="button" style="padding:4px 8px;font-size:10px;">清空</button>
+    </div>
+    <div class="pane-body">
+
+      <div class="block">
+        <div class="block-title">添加元素</div>
+        <div class="block-body">
+          <div class="btn-row">
+            <button class="btn" type="button" data-add="text">+ 文本</button>
+            <button class="btn" type="button" data-add="box">+ 容器</button>
+            <button class="btn" type="button" data-add="bar">+ 滚动条</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-title">图层 <span id="layerCount" style="font-weight:400;letter-spacing:0.5px;">0</span></div>
+        <div class="block-body">
+          <div class="layer-list" id="layerList"></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-title">属性</div>
+        <div class="block-body" id="propPanel">
+          <div class="empty-hint">选择图层或添加元素后，可在此编辑属性。</div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <main class="pane-center" id="paneCenter">
+    <div class="preview-meta">
+      <span>画板预览 295 × 150</span>
+      <span class="zoom" id="zoomLabel">100%</span>
+    </div>
+    <div class="preview-wrap" id="previewWrap">
+      <div class="guide guide-v" id="guideV"></div>
+      <div class="guide guide-h" id="guideH"></div>
+      <div id="canvas"></div>
+    </div>
+  </main>
+
+  <aside class="pane-right">
+    <div class="pane-head">
+      <span>JSON 代码</span>
+      <button class="device-btn" id="deviceBtn" type="button" title="点击修改密钥与设备序列号">未配置</button>
+    </div>
+    <div class="code-area">
+      <pre id="codePreview"></pre>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="sendBtn" type="button" style="width:100%;padding:12px;font-size:13px;letter-spacing:2px;">发送到设备</button>
+      <div class="status" id="status" hidden></div>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-mask" id="modalMask" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 class="modal-title">设备配置</h2>
+    <p class="modal-desc">请填入 API 密钥与设备序列号，信息将保存在本机浏览器中。</p>
+
+    <div class="field">
+      <label for="keyInput">API 密钥</label>
+      <input id="keyInput" type="text" autocomplete="off" spellcheck="false" placeholder="dot_app_..." />
+    </div>
+
+    <div class="field">
+      <label for="deviceInput">设备序列号</label>
+      <input id="deviceInput" type="text" autocomplete="off" spellcheck="false" placeholder="请填写" />
+    </div>
+
+    <div class="modal-error" id="modalError">请把 API 密钥和设备序列号都填写完整。</div>
+
+    <div class="modal-actions">
+      <button class="modal-btn ghost" id="cancelBtn" type="button" hidden>取消</button>
+      <button class="modal-btn primary" id="saveBtn" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
