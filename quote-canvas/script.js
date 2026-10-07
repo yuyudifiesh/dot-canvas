@@ -24,6 +24,7 @@ let codeRafId = 0;
 
 const nodeMap = new Map();
 
+/* ================= DOM 引用 ================= */
 let layoutEl, pcOnly, paneCenter, canvasEl, previewWrap;
 let guideV, guideH, zoomLabel;
 let layerListEl, layerCountEl, propPanelEl, codePreviewEl;
@@ -88,7 +89,7 @@ function cacheDom() {
   cancelBtn   = document.getElementById('cancelBtn');
 }
 
-/* ================= 缩放与视图 ================= */
+/* ================= 视图 ================= */
 function fitPreview() {
   const availW = paneCenter.clientWidth - 48;
   const availH = paneCenter.clientHeight - 70;
@@ -185,6 +186,18 @@ function createBox(opts) {
   }, opts || {});
 }
 
+function createDivider(opts) {
+  return Object.assign({
+    id: makeId(),
+    type: 'divider',
+    x: 20, y: 70, w: 200, h: 2,
+    direction: 'h',
+    thickness: 2,
+    color: '#000000',
+    radius: 0
+  }, opts || {});
+}
+
 function createBar(opts) {
   return Object.assign({
     id: makeId(),
@@ -201,11 +214,11 @@ function createBar(opts) {
 
 function defaultScene() {
   return [
-    createText({ x: 12, y: 10,  w: 260, h: 26, text: 'TODAY', fontSize: 20, fontWeight: 'bold', bg: '#ffffff' }),
-    createBox ({ x: 12, y: 44,  w: 270, h: 1,  bg: '#000000', borderWidth: 0, borderColor: '#000000', radius: 0 }),
-    createText({ x: 12, y: 56,  w: 260, h: 22, text: '✓ 整理本周的项目计划', fontSize: 16, fontWeight: 'normal', bg: '#ffffff' }),
-    createText({ x: 12, y: 82,  w: 260, h: 22, text: '○ 回复设计稿的反馈意见', fontSize: 16, fontWeight: 'normal', bg: '#ffffff' }),
-    createText({ x: 12, y: 108, w: 260, h: 22, text: '○ 阅读 30 分钟', fontSize: 16, fontWeight: 'normal', bg: '#ffffff' })
+    createText({ x: 12, y: 10,  w: 260, h: 26, text: 'TODAY', fontSize: 20, fontWeight: 'bold' }),
+    createDivider({ x: 12, y: 44, w: 270, h: 1, direction: 'h', thickness: 1, color: '#000000' }),
+    createText({ x: 12, y: 56,  w: 260, h: 22, text: '✓ 整理本周的项目计划', fontSize: 16, fontWeight: 'normal' }),
+    createText({ x: 12, y: 82,  w: 260, h: 22, text: '○ 回复设计稿的反馈意见', fontSize: 16, fontWeight: 'normal' }),
+    createText({ x: 12, y: 108, w: 260, h: 22, text: '○ 阅读 30 分钟', fontSize: 16, fontWeight: 'normal' })
   ];
 }
 
@@ -224,9 +237,23 @@ function loadScene() {
     if (!obj || !Array.isArray(obj.layers) || obj.layers.length === 0) return false;
     layers = obj.layers;
     nextId = parseInt(obj.nextId, 10) || (layers.length + 1);
+
     layers.forEach((el) => {
+      if (el.type === 'box') {
+        if (el.radius === undefined) el.radius = 0;
+      }
+      if (el.type === 'divider') {
+        if (el.direction === undefined) el.direction = 'h';
+        if (el.thickness === undefined) el.thickness = 1;
+        if (el.color === undefined) el.color = '#000000';
+        if (el.radius === undefined) el.radius = 0;
+      }
       if (el.type === 'bar' && el.radius === undefined) el.radius = 0;
-      if (el.type === 'box' && el.radius === undefined) el.radius = 0;
+      if (el.type === 'text') {
+        delete el.font;
+        delete el.isPixel;
+        delete el.pixelClass;
+      }
     });
     return true;
   } catch (_) {
@@ -249,31 +276,13 @@ function renderCanvas() {
     node.style.height = el.h + 'px';
 
     if (el.type === 'text') {
-      node.classList.add('cv-text');
-      node.textContent = el.text;
-      node.style.fontSize = el.fontSize + 'px';
-      node.style.fontWeight = el.fontWeight;
-      node.style.color = el.color;
-      node.style.justifyContent =
-        el.align === 'center' ? 'center' : (el.align === 'right' ? 'flex-end' : 'flex-start');
-      node.style.textAlign = el.align;
-      node.style.background = el.bg;
+      renderTextNode(node, el);
     } else if (el.type === 'box') {
-      node.classList.add('cv-box');
-      node.style.background = el.bg;
-      node.style.border = el.borderWidth + 'px solid ' + el.borderColor;
-      node.style.borderRadius = el.radius + 'px';
+      renderBoxNode(node, el);
+    } else if (el.type === 'divider') {
+      renderDividerNode(node, el);
     } else if (el.type === 'bar') {
-      node.classList.add('cv-bar-track');
-      node.style.background = el.bg;
-      node.style.border = el.borderWidth + 'px solid ' + el.borderColor;
-      node.style.borderRadius = el.radius + 'px';
-      const fill = document.createElement('div');
-      fill.className = 'cv-bar-fill';
-      fill.style.width = Math.max(0, Math.min(100, el.percent)) + '%';
-      fill.style.background = el.fillColor;
-      fill.style.borderRadius = Math.max(0, el.radius - el.borderWidth) + 'px';
-      node.appendChild(fill);
+      renderBarNode(node, el);
     }
 
     attachDrag(node, el);
@@ -282,6 +291,55 @@ function renderCanvas() {
   });
 
   updateGuides();
+}
+
+function renderTextNode(node, el) {
+  node.classList.add('cv-text');
+  node.textContent = el.text;
+  node.style.color = el.color;
+  node.style.justifyContent =
+    el.align === 'center' ? 'center' : (el.align === 'right' ? 'flex-end' : 'flex-start');
+  node.style.textAlign = el.align;
+  node.style.background = el.bg;
+  node.style.fontSize = el.fontSize + 'px';
+  node.style.fontWeight = el.fontWeight;
+}
+
+function renderBoxNode(node, el) {
+  node.classList.add('cv-box');
+  node.style.background = el.bg;
+  node.style.border = el.borderWidth + 'px solid ' + el.borderColor;
+  node.style.borderRadius = el.radius + 'px';
+}
+
+function renderDividerNode(node, el) {
+  node.classList.add('cv-divider');
+  if (el.direction === 'h') {
+    node.style.alignItems = 'center';
+    node.style.height = el.thickness + 'px';
+    node.style.background = el.color;
+    node.style.borderRadius = el.radius + 'px';
+    el.h = el.thickness;
+  } else {
+    node.style.justifyContent = 'center';
+    node.style.width = el.thickness + 'px';
+    node.style.background = el.color;
+    node.style.borderRadius = el.radius + 'px';
+    el.w = el.thickness;
+  }
+}
+
+function renderBarNode(node, el) {
+  node.classList.add('cv-bar-track');
+  node.style.background = el.bg;
+  node.style.border = el.borderWidth + 'px solid ' + el.borderColor;
+  node.style.borderRadius = el.radius + 'px';
+  const fill = document.createElement('div');
+  fill.className = 'cv-bar-fill';
+  fill.style.width = Math.max(0, Math.min(100, el.percent)) + '%';
+  fill.style.background = el.fillColor;
+  fill.style.borderRadius = Math.max(0, el.radius - el.borderWidth) + 'px';
+  node.appendChild(fill);
 }
 
 function scheduleCodeUpdate() {
@@ -373,12 +431,16 @@ function renderLayerList() {
 
     const type = document.createElement('span');
     type.className = 'layer-type';
-    type.textContent = el.type === 'text' ? '文本' : (el.type === 'box' ? '容器' : '滚动条');
+    type.textContent = el.type === 'text' ? '文本'
+                     : el.type === 'box' ? '容器'
+                     : el.type === 'divider' ? '分割条'
+                     : '滚动条';
 
     const label = document.createElement('span');
     label.className = 'layer-text';
     if (el.type === 'text') label.textContent = el.text || '(空)';
     else if (el.type === 'box') label.textContent = el.w + '×' + el.h;
+    else if (el.type === 'divider') label.textContent = el.direction === 'h' ? '水平' : '垂直';
     else label.textContent = el.percent + '%';
 
     const del = document.createElement('button');
@@ -612,6 +674,7 @@ function renderProps() {
     propPanelEl.appendChild(wrap);
   }
 
+  /* ---------- 按类型渲染 ---------- */
   if (el.type === 'text') {
     addField('文本内容', 'text', 'text');
     addTwoCols([{ label: '宽 W', key: 'w' }, { label: '高 H', key: 'h' }]);
@@ -629,14 +692,28 @@ function renderProps() {
     addBlackWhite('背景色', 'bg');
   } else if (el.type === 'box') {
     addTwoCols([{ label: '宽 W', key: 'w' }, { label: '高 H', key: 'h' }]);
-    addField('边框粗细', 'borderWidth', 'number', { min: 0, max: 8 });
+    addSlider('边框粗细', 'borderWidth', 0, 8);
     addSlider('圆角', 'radius', 0, 60);
     addBlackWhite('背景色', 'bg');
     addBlackWhite('边框颜色', 'borderColor');
+  } else if (el.type === 'divider') {
+    addSelect('方向', 'direction', [
+      { value: 'h', label: '水平' },
+      { value: 'v', label: '垂直' }
+    ]);
+    addSlider('粗细', 'thickness', 1, 8);
+    addBlackWhite('颜色', 'color');
+    addSlider('圆角', 'radius', 0, 60);
+
+    if (el.direction === 'h') {
+      addTwoCols([{ label: '长度 W', key: 'w' }]);
+    } else {
+      addTwoCols([{ label: '长度 H', key: 'h' }]);
+    }
   } else if (el.type === 'bar') {
     addTwoCols([{ label: '宽 W', key: 'w' }, { label: '高 H', key: 'h' }]);
     addField('百分比', 'percent', 'range', { min: 0, max: 100 });
-    addField('边框粗细', 'borderWidth', 'number', { min: 0, max: 8 });
+    addSlider('边框粗细', 'borderWidth', 0, 8);
     addSlider('圆角', 'radius', 0, 60);
     addBlackWhite('背景色', 'bg');
     addBlackWhite('填充色', 'fillColor');
@@ -666,10 +743,15 @@ function removeLayer(id) {
 
 function addLayer(type) {
   let el;
-  if (type === 'text') el = createText({ x: 20, y: 20 + layers.length * 6 });
-  else if (type === 'box') el = createBox({ x: 20, y: 20 + layers.length * 6 });
-  else el = createBar({ x: 20, y: 40 + layers.length * 6 });
-
+  if (type === 'text') {
+    el = createText({ x: 20, y: 20 + layers.length * 6 });
+  } else if (type === 'box') {
+    el = createBox({ x: 20, y: 20 + layers.length * 6 });
+  } else if (type === 'divider') {
+    el = createDivider({ x: 20, y: 40 + layers.length * 6, w: 200, h: 2 });
+  } else {
+    el = createBar({ x: 20, y: 40 + layers.length * 6 });
+  }
   layers.push(el);
   selectLayer(el.id);
   updateCode();
@@ -736,7 +818,15 @@ function buildChildren() {
         wordBreak: 'break-word',
         backgroundColor: el.bg
       });
-      return { type: 'div', props: { tw: 'flex', style, children: el.text || '' } };
+
+      return {
+        type: 'div',
+        props: {
+          tw: 'flex',
+          style,
+          children: el.text || ''
+        }
+      };
     }
 
     if (el.type === 'box') {
@@ -745,6 +835,31 @@ function buildChildren() {
         border: el.borderWidth + 'px solid ' + el.borderColor,
         borderRadius: el.radius + 'px'
       });
+      return { type: 'div', props: { style, children: '' } };
+    }
+
+    if (el.type === 'divider') {
+      const isH = el.direction === 'h';
+      const style = isH
+        ? {
+            position: 'absolute',
+            left: el.x + 'px',
+            top: el.y + 'px',
+            width: el.w + 'px',
+            height: el.thickness + 'px',
+            backgroundColor: el.color,
+            borderRadius: el.radius + 'px'
+          }
+        : {
+            position: 'absolute',
+            left: el.x + 'px',
+            top: el.y + 'px',
+            width: el.thickness + 'px',
+            height: el.h + 'px',
+            backgroundColor: el.color,
+            borderRadius: el.radius + 'px'
+          };
+
       return { type: 'div', props: { style, children: '' } };
     }
 
@@ -925,6 +1040,7 @@ async function send() {
   }
 }
 
+/* ================= 小屏检测 ================= */
 function checkScreen() {
   if (window.innerWidth < 900) {
     pcOnly.hidden = false;
